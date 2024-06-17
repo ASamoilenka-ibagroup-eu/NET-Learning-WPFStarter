@@ -9,33 +9,33 @@ namespace WPFStarter
 {
     public partial class App : Application
     {
-        private readonly IHost host;
+        private readonly IHost _host;
 
         public App()
         {
-            host = Host.CreateDefaultBuilder()
+            _host = Host.CreateDefaultBuilder()
                 .ConfigureServices((context, services) =>
                 {
                     var connectionString = context.Configuration.GetConnectionString("DefaultConnection");
                     services.AddDbContext<ApplicationDbContext>(options =>
                         options.UseSqlServer(connectionString));
-                    services.AddSingleton<MainWindow>();
+                    services.AddTransient<MainWindow>();
                 })
                 .Build();
         }
 
         protected override async void OnStartup(StartupEventArgs e)
         {
-            await host.StartAsync();
-            var mainWindow = host.Services.GetRequiredService<MainWindow>();
+            await _host.StartAsync();
+            var mainWindow = _host.Services.GetRequiredService<MainWindow>();
             mainWindow.Show();
             base.OnStartup(e);
         }
 
         protected override async void OnExit(ExitEventArgs e)
         {
-            await host.StopAsync();
-            host.Dispose();
+            await _host.StopAsync();
+            _host.Dispose();
             base.OnExit(e);
         }
     }

@@ -1,24 +1,20 @@
-﻿using CsvHelper;
-using CsvHelper.Configuration;
-using Microsoft.Win32;
-using OfficeOpenXml;
-using System.Globalization;
-using System.IO;
+﻿using Microsoft.Win32;
 using System.Windows;
-using System.Xml.Linq;
-using WPFStarter.Models;
 using WPFStarter.Models.Data;
+using WPFStarter.Services;
 
 namespace WPFStarter
 {
     public partial class MainWindow : Window
     {
         private readonly ApplicationDbContext _context;
+        private readonly IDataWorker _dataWorker;
 
-        public MainWindow(ApplicationDbContext context)
+        public MainWindow(ApplicationDbContext context, IDataWorker dataWorker)
         {
             InitializeComponent();
             _context = context;
+            _dataWorker = dataWorker;
             LoadData();
         }
 
@@ -29,63 +25,29 @@ namespace WPFStarter
 
         private void ImportCsv_Click(object sender, RoutedEventArgs e)
         {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-            openFileDialog.Filter = "CSV files (*.csv)|*.csv";
+            var openFileDialog = new OpenFileDialog();
             if (openFileDialog.ShowDialog() == true)
             {
-                using (var reader = new StreamReader(openFileDialog.FileName))
-                using (var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
-                {
-                    Delimiter = ";"
-                }))
-                {
-                    var records = csv.GetRecords<DataRecord>().ToList();
-                    _context.Records.AddRange(records);
-                    _context.SaveChanges();
-                    LoadData();
-                }
+                _dataWorker.ImportCsv(_context, openFileDialog.FileName);
+                LoadData();
             }
         }
 
         private void ExportToExcel_Click(object sender, RoutedEventArgs e)
         {
-            SaveFileDialog saveFileDialog = new SaveFileDialog();
-            saveFileDialog.Filter = "Excel files (*.xlsx)|*.xlsx";
+            var saveFileDialog = new SaveFileDialog { Filter = "Excel Files|*.xlsx" };
             if (saveFileDialog.ShowDialog() == true)
             {
-                using (var package = new ExcelPackage())
-                {
-                    var worksheet = package.Workbook.Worksheets.Add("Records");
-                    var records = _context.Records.ToList();
-                    worksheet.Cells.LoadFromCollection(records, true);
-                    package.SaveAs(new FileInfo(saveFileDialog.FileName));
-                }
+                _dataWorker.ExportToExcel(_context, saveFileDialog.FileName);
             }
         }
 
         private void ExportToXml_Click(object sender, RoutedEventArgs e)
         {
-            SaveFileDialog saveFileDialog = new SaveFileDialog();
-            saveFileDialog.Filter = "XML files (*.xml)|*.xml";
+            var saveFileDialog = new SaveFileDialog { Filter = "XML Files|*.xml" };
             if (saveFileDialog.ShowDialog() == true)
             {
-                var records = _context.Records.ToList();
-                var xDocument = new XDocument(
-                    new XElement("TestProgram",
-                        records.Select(r =>
-                            new XElement("Record",
-                                new XAttribute("id", r.Id),
-                                new XElement("Date", r.Date),
-                                new XElement("FirstName", r.FirstName),
-                                new XElement("LastName", r.LastName),
-                                new XElement("SurName", r.SurName),
-                                new XElement("City", r.City),
-                                new XElement("Country", r.Country)
-                            )
-                        )
-                    )
-                );
-                xDocument.Save(saveFileDialog.FileName);
+                _dataWorker.ExportToXml(_context, saveFileDialog.FileName);
             }
         }
     }

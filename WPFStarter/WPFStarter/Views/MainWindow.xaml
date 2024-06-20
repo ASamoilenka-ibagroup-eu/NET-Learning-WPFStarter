@@ -1,0 +1,26 @@
+﻿<Window x:Class="WPFStarter.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="MainWindow" Height="450" Width="800">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <TextBlock Text="Data Records" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
+
+        <DataGrid x:Name="DataGridRecords" ItemsSource="{Binding Records}" AutoGenerateColumns="True" 
+                  Grid.Row="1" Margin="0,0,0,10"/>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Grid.Row="2" Margin="0,10,0,0">
+            <Button Command="{Binding ImportCsvCommand}" Content="Import CSV" Margin="5"/>
+            <Button Command="{Binding ExportToExcelCommand}" Content="Export to Excel" Margin="5"/>
+            <Button Command="{Binding ExportToXmlCommand}" Content="Export to XML" Margin="5"/>
+        </StackPanel>
+    </Grid>
+</Window>

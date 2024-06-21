@@ -23,12 +23,12 @@ namespace WPFStarter
                     services.AddDbContext<ApplicationDbContext>(options =>
                         options.UseSqlServer(connectionString));
                     services.AddScoped<IDataWorker, DataWorker>();
-                    services.AddSingleton<MainViewModel>();
+                    services.AddTransient<MainViewModel>();
                 })
                 .Build();
         }
 
-        private async void Application_Startup(object sender, StartupEventArgs e)
+        private async void OnStartup(object sender, StartupEventArgs e)
         {
             await _host.StartAsync();
 

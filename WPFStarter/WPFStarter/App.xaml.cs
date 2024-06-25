@@ -2,16 +2,17 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using System.IO;
 using System.Windows;
-using WPFStarter.Models.Data;
+using WPFStarter.Models;
 using WPFStarter.Services;
+using WPFStarter.ViewModels;
+using WPFStarter.Views;
 
 namespace WPFStarter
 {
     public partial class App : Application
     {
-        private readonly IHost _host;
+        private IHost _host;
 
         public App()
         {
@@ -22,22 +23,29 @@ namespace WPFStarter
                     services.AddDbContext<ApplicationDbContext>(options =>
                         options.UseSqlServer(connectionString));
                     services.AddScoped<IDataWorker, DataWorker>();
-                    services.AddSingleton<MainWindow>();
+                    services.AddTransient<MainViewModel>();
                 })
                 .Build();
         }
 
-        private async void Application_Startup(object sender, StartupEventArgs e)
+        private async void OnStartup(object sender, StartupEventArgs e)
         {
             await _host.StartAsync();
-            var mainWindow = _host.Services.GetRequiredService<MainWindow>();
+
+            var mainWindow = new MainWindow
+            {
+                DataContext = _host.Services.GetRequiredService<MainViewModel>()
+            };
             mainWindow.Show();
         }
 
-        private async void Application_Exit(object sender, ExitEventArgs e)
+        protected override async void OnExit(ExitEventArgs e)
         {
-            await _host.StopAsync();
-            _host.Dispose();
+            using (_host)
+            {
+                await _host.StopAsync(TimeSpan.FromSeconds(5));
+            }
+            base.OnExit(e);
         }
     }
 }

@@ -5,14 +5,14 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using WPFStarter.Models.Data;
+using WPFStarter.Models;
 
 #nullable disable
 
 namespace WPFStarter.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20240618153309_InitialCreate")]
+    [Migration("20240620142448_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />

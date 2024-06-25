@@ -1,78 +1,95 @@
-﻿using System.Globalization;
-using System.IO;
-using System.Xml.Linq;
-using CsvHelper;
+﻿using System.IO;
 using OfficeOpenXml;
+using System.Xml.Linq;
 using WPFStarter.Models;
-using WPFStarter.Models.Data;
 
 namespace WPFStarter.Services
 {
-    public interface IDataWorker
-    {
-        void ImportCsv(ApplicationDbContext context, string filePath);
-        void ExportToExcel(ApplicationDbContext context, string filePath);
-        void ExportToXml(ApplicationDbContext context, string filePath);
-    }
-
     public class DataWorker : IDataWorker
     {
-        public void ImportCsv(ApplicationDbContext context, string filePath)
+        public DataWorker()
         {
-            using (var reader = new StreamReader(filePath))
-            using (var csv = new CsvReader(reader, CultureInfo.InvariantCulture))
-            {
-                var records = csv.GetRecords<DataRecord>().ToList();
-                context.Records.AddRange(records);
-                context.SaveChanges();
-            }
+            // Set the license context for EPPlus
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
         }
 
-        public void ExportToExcel(ApplicationDbContext context, string filePath)
+        public async Task ImportCsvAsync(ApplicationDbContext context, string filePath)
         {
-            var records = context.Records.ToList();
-            using (var package = new ExcelPackage())
+            try
             {
-                var worksheet = package.Workbook.Worksheets.Add("Records");
-                worksheet.Cells[1, 1].Value = "Id";
-                worksheet.Cells[1, 2].Value = "Date";
-                worksheet.Cells[1, 3].Value = "FirstName";
-                worksheet.Cells[1, 4].Value = "LastName";
-                worksheet.Cells[1, 5].Value = "SurName";
-                worksheet.Cells[1, 6].Value = "City";
-                worksheet.Cells[1, 7].Value = "Country";
+                var lines = await File.ReadAllLinesAsync(filePath);
+                var records = new List<DataRecord>();
 
-                for (int i = 0; i < records.Count; i++)
+                bool isFirstLine = true;
+                foreach (var line in lines)
                 {
-                    worksheet.Cells[i + 2, 1].Value = records[i].Id;
-                    worksheet.Cells[i + 2, 2].Value = records[i].Date.ToString("yyyy-MM-dd");
-                    worksheet.Cells[i + 2, 3].Value = records[i].FirstName;
-                    worksheet.Cells[i + 2, 4].Value = records[i].LastName;
-                    worksheet.Cells[i + 2, 5].Value = records[i].SurName;
-                    worksheet.Cells[i + 2, 6].Value = records[i].City;
-                    worksheet.Cells[i + 2, 7].Value = records[i].Country;
+                    // Skip the first line with headers
+                    if (isFirstLine)
+                    {
+                        isFirstLine = false;
+                        continue;
+                    }
+
+                    var values = line.Split(';');
+                    var record = new DataRecord
+                    {
+                        Date = DateTime.Parse(values[0]),
+                        FirstName = values[1],
+                        LastName = values[2],
+                        SurName = values[3],
+                        City = values[4],
+                        Country = values[5]
+                    };
+                    records.Add(record);
                 }
 
-                package.SaveAs(new FileInfo(filePath));
+                await context.Records.AddRangeAsync(records);
+                await context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error importing CSV file at {filePath}: {ex.Message}", ex);
             }
         }
 
-        public void ExportToXml(ApplicationDbContext context, string filePath)
+        public async Task ExportToExcelAsync(IEnumerable<DataRecord> records, string filePath)
         {
-            var records = context.Records.ToList();
-            var xml = new XElement("TestProgram",
-                records.Select(r => new XElement("Record",
-                    new XAttribute("id", r.Id),
-                    new XElement("Date", r.Date.ToString("yyyy-MM-dd")),
-                    new XElement("FirstName", r.FirstName),
-                    new XElement("LastName", r.LastName),
-                    new XElement("SurName", r.SurName),
-                    new XElement("City", r.City),
-                    new XElement("Country", r.Country)
-                ))
-            );
+            try
+            {
+                using (var package = new ExcelPackage())
+                {
+                    var worksheet = package.Workbook.Worksheets.Add("Data");
+                    worksheet.Cells["A1"].LoadFromCollection(records, true);
+                    await package.SaveAsAsync(new FileInfo(filePath));
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error exporting to Excel file at {filePath}: {ex.Message}", ex);
+            }
+        }
 
-            xml.Save(filePath);
+        public async Task ExportToXmlAsync(IEnumerable<DataRecord> records, string filePath)
+        {
+            try
+            {
+                var xDocument = new XDocument(
+                    new XElement("TestProgram",
+                        records.Select(r => new XElement("Record",
+                            new XAttribute("id", r.Id),
+                            new XElement("Date", r.Date),
+                            new XElement("FirstName", r.FirstName),
+                            new XElement("LastName", r.LastName),
+                            new XElement("SurName", r.SurName),
+                            new XElement("City", r.City),
+                            new XElement("Country", r.Country)))));
+
+                await Task.Run(() => xDocument.Save(filePath));
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error exporting to XML file at {filePath}: {ex.Message}", ex);
+            }
         }
     }
 }

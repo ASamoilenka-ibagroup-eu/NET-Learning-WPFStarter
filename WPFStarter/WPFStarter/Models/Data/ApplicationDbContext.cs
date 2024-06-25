@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
-namespace WPFStarter.Models.Data
+namespace WPFStarter.Models
 {
     public class ApplicationDbContext : DbContext
     {
